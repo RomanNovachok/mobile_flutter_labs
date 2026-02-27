@@ -10,12 +10,12 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Speed Command Game',
+      title: 'Car speed game',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      home: const SpeedGamePage(title: 'Speed Command Game'),
+      home: const SpeedGamePage(title: 'Car speed game'),
     );
   }
 }
@@ -57,7 +57,7 @@ class _SpeedGamePageState extends State<SpeedGamePage> {
     final raw = _controller.text.trim();
     if (raw.isEmpty) {
       setState(() {
-        _status = 'Type something 🙂 Example: boost 10';
+        _status = 'Type command! Example: boost 10';
       });
       return;
     }
@@ -105,7 +105,7 @@ class _SpeedGamePageState extends State<SpeedGamePage> {
           return;
         }
         _setSpeed(value);
-        _setOk('Speed set to $value (clamped to 0..100).');
+        _setOk('Speed set to $value.');
         break;
 
       case 'stop':
