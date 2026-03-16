@@ -7,115 +7,227 @@ void main() {
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
+      title: 'Car speed game',
       theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // TRY THIS: Try running your application with "flutter run". You'll see
-        // the application has a purple toolbar. Then, without quitting the app,
-        // try changing the seedColor in the colorScheme below to Colors.green
-        // and then invoke "hot reload" (save your changes or press the "hot
-        // reload" button in a Flutter-supported IDE, or press "r" if you used
-        // the command line to start the app).
-        //
-        // Notice that the counter didn't reset back to zero; the application
-        // state is not lost during the reload. To reset the state, use hot
-        // restart instead.
-        //
-        // This works for code too, not just values: Most code changes can be
-        // tested with just a hot reload.
-        colorScheme: .fromSeed(seedColor: Colors.deepPurple),
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        useMaterial3: true,
       ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      home: const SpeedGamePage(title: 'Car speed game'),
     );
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({required this.title, super.key});
-
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
+class SpeedGamePage extends StatefulWidget {
+  const SpeedGamePage({required this.title, super.key});
 
   final String title;
 
   @override
-  State<MyHomePage> createState() => _MyHomePageState();
+  State<SpeedGamePage> createState() => _SpeedGamePageState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
+class _SpeedGamePageState extends State<SpeedGamePage> {
+  static const int _minSpeed = 0;
+  static const int _maxSpeed = 100;
 
-  void _incrementCounter() {
+  final TextEditingController _controller = TextEditingController();
+
+  int _speed = 0;
+  String _message = 'We’re not getting anywhere like this. Hit the gas! 🚗';
+  String _status = 'Type a command like: boost 15, brake 10, set 50, stop';
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _resetSpeed() {
     setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
+      _speed = 0;
+      _message = _messageForSpeed(_speed);
+      _status = 'Restarted. Speed reset to 0.';
     });
+  }
+
+  void _applyCommand() {
+    final raw = _controller.text.trim();
+    if (raw.isEmpty) {
+      setState(() {
+        _status = 'Type command! Example: boost 10';
+      });
+      return;
+    }
+
+    if (raw == 'deer!' || raw == 'Deer!') {
+      setState(() {
+        _speed = 0;
+        _message = 'Deer! Emergency stop! 🛑🦌';
+        _status = 'Secret phrase activated.';
+        _controller.clear();
+      });
+      return;
+    }
+
+    final parts = raw.split(RegExp(r'\s+'));
+    final command = parts.first.toLowerCase();
+
+    int? value;
+    if (parts.length >= 2) {
+      value = int.tryParse(parts[1]);
+    }
+
+    switch (command) {
+      case 'boost':
+        if (value == null) {
+          _setError('I need a number: boost 15');
+          return;
+        }
+        _changeSpeedBy(value);
+        _setOk('Boosted by $value.');
+        break;
+
+      case 'brake':
+        if (value == null) {
+          _setError('I need a number: brake 20');
+          return;
+        }
+        _changeSpeedBy(-value);
+        _setOk('Braked by $value.');
+        break;
+
+      case 'set':
+        if (value == null) {
+          _setError('I need a number: set 50');
+          return;
+        }
+        _setSpeed(value);
+        _setOk('Speed set to $value.');
+        break;
+
+      case 'stop':
+        _setSpeed(0);
+        _setOk('Stopped.');
+        break;
+
+      default:
+        _setError('Unknown command. Try: boost 10, brake 10, set 50, stop.');
+        return;
+    }
+
+    setState(() {
+      _message = _messageForSpeed(_speed);
+      _controller.clear();
+    });
+  }
+
+  void _changeSpeedBy(int delta) {
+    setState(() {
+      _speed = (_speed + delta).clamp(_minSpeed, _maxSpeed);
+    });
+  }
+
+  void _setSpeed(int value) {
+    setState(() {
+      _speed = value.clamp(_minSpeed, _maxSpeed);
+    });
+  }
+
+  void _setOk(String text) {
+    setState(() {
+      _status = text;
+    });
+  }
+
+  void _setError(String text) {
+    setState(() {
+      _status = text;
+    });
+  }
+
+  String _messageForSpeed(int speed) {
+    if (speed == 0) {
+      return 'We’re not getting anywhere like this. Hit the gas! 🚗';
+    }
+    if (speed >= 1 && speed <= 30) {
+      return 'The turtle is faster than you! 🐢';
+    }
+    if (speed >= 31 && speed <= 60) {
+      return "Perfect speed, you're a good driver! 😎";
+    }
+    if (speed >= 61 && speed <= 99) {
+      return "It's dangerous, slow down! 😱";
+    }
+    return "Maximum speed! Even the car tells you it's too fast! 😅";
   }
 
   @override
   Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
+    final theme = Theme.of(context);
+
     return Scaffold(
       appBar: AppBar(
-        // TRY THIS: Try changing the color here to a specific color (to
-        // Colors.amber, perhaps?) and trigger a hot reload to see the AppBar
-        // change color while the other colors stay the same.
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
+        backgroundColor: theme.colorScheme.inversePrimary,
         title: Text(widget.title),
+        actions: [
+          IconButton(
+            onPressed: _resetSpeed,
+            tooltip: 'Restart',
+            icon: const Icon(Icons.refresh),
+          ),
+        ],
       ),
-      body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
+      body: Padding(
+        padding: const EdgeInsets.all(16),
         child: Column(
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
-          //
-          // TRY THIS: Invoke "debug painting" (choose the "Toggle Debug Paint"
-          // action in the IDE, or press "p" in the console), to see the
-          // wireframe for each widget.
-          mainAxisAlignment: .center,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Text('You have pushed the button this many times:'),
+            const SizedBox(height: 8),
             Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium,
+              'Speed: $_speed / $_maxSpeed',
+              style: theme.textTheme.headlineSmall,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: theme.colorScheme.outlineVariant),
+              ),
+              child: Text(
+                _message,
+                style: theme.textTheme.titleMedium,
+                textAlign: TextAlign.center,
+              ),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _controller,
+              textInputAction: TextInputAction.done,
+              onSubmitted: (_) => _applyCommand(),
+              decoration: const InputDecoration(
+                labelText: 'Command',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 12),
+            ElevatedButton.icon(
+              onPressed: _applyCommand,
+              icon: const Icon(Icons.play_arrow),
+              label: const Text('Run command'),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              _status,
+              style: theme.textTheme.bodyMedium,
+              textAlign: TextAlign.center,
             ),
           ],
         ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
       ),
     );
   }
