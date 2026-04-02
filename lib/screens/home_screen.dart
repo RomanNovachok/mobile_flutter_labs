@@ -1,18 +1,58 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_flutter_lab1/core/utils/responsive_utils.dart';
+import 'package:mobile_flutter_lab1/data/models/user_model.dart';
+import 'package:mobile_flutter_lab1/data/repositories/local_auth_repository.dart';
+import 'package:mobile_flutter_lab1/data/services/local_storage_service.dart';
 import 'package:mobile_flutter_lab1/routes/app_routes.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
-  static const _primaryDark = Color(0xFF1F2937);
-  static const _primaryBlue = Color(0xFF2563EB);
-  static const _softBlue = Color(0xFFDBEAFE);
-  static const _textMuted = Color(0xFF6B7280);
-  static const _danger = Color(0xFFDC2626);
+  static const primaryDark = Color(0xFF1F2937);
+  static const primaryBlue = Color(0xFF2563EB);
+  static const softBlue = Color(0xFFDBEAFE);
+  static const textMuted = Color(0xFF6B7280);
+  static const danger = Color(0xFFDC2626);
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  final _authRepository = LocalAuthRepository(LocalStorageService());
+
+  UserModel? _currentUser;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUser();
+  }
+
+  Future<void> _loadUser() async {
+    final user = await _authRepository.getCurrentUser();
+
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _currentUser = user;
+      _isLoading = false;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: Text(
@@ -44,10 +84,27 @@ class HomeScreen extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                Text(
+                  'Welcome, ${_currentUser?.fullName ?? 'User'}',
+                  style: TextStyle(
+                    fontSize: context.sp(24),
+                    fontWeight: FontWeight.bold,
+                    color: HomeScreen.primaryDark,
+                  ),
+                ),
+                SizedBox(height: context.sp(6)),
+                Text(
+                  _currentUser?.email ?? '',
+                  style: TextStyle(
+                    fontSize: context.sp(14),
+                    color: HomeScreen.textMuted,
+                  ),
+                ),
+                SizedBox(height: context.sp(20)),
                 Container(
                   padding: EdgeInsets.all(context.sp(18)),
                   decoration: BoxDecoration(
-                    color: _primaryDark,
+                    color: HomeScreen.primaryDark,
                     borderRadius: BorderRadius.circular(context.sp(16)),
                   ),
                   child: Column(
@@ -66,7 +123,7 @@ class HomeScreen extends StatelessWidget {
                         style: TextStyle(
                           fontSize: context.sp(28),
                           fontWeight: FontWeight.bold,
-                          color: _softBlue,
+                          color: HomeScreen.softBlue,
                         ),
                       ),
                       SizedBox(height: context.sp(8)),
@@ -87,7 +144,7 @@ class HomeScreen extends StatelessWidget {
                       child: _StatusCard(
                         title: 'Flood sensor',
                         value: 'Safe',
-                        valueColor: _primaryBlue,
+                        valueColor: HomeScreen.primaryBlue,
                       ),
                     ),
                     SizedBox(width: context.sp(12)),
@@ -95,7 +152,7 @@ class HomeScreen extends StatelessWidget {
                       child: _StatusCard(
                         title: 'Lathe speed',
                         value: '65%',
-                        valueColor: _primaryBlue,
+                        valueColor: HomeScreen.primaryBlue,
                       ),
                     ),
                   ],
@@ -107,7 +164,7 @@ class HomeScreen extends StatelessWidget {
                       child: _StatusCard(
                         title: 'Mode',
                         value: 'Manual',
-                        valueColor: _primaryBlue,
+                        valueColor: HomeScreen.primaryBlue,
                       ),
                     ),
                     SizedBox(width: context.sp(12)),
@@ -115,7 +172,7 @@ class HomeScreen extends StatelessWidget {
                       child: _StatusCard(
                         title: 'Emergency',
                         value: 'Normal',
-                        valueColor: _primaryBlue,
+                        valueColor: HomeScreen.primaryBlue,
                       ),
                     ),
                   ],
@@ -136,7 +193,7 @@ class HomeScreen extends StatelessWidget {
                     icon: const Icon(Icons.play_arrow),
                     label: const Text('Start machine'),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: _primaryBlue,
+                      backgroundColor: HomeScreen.primaryBlue,
                       foregroundColor: Colors.white,
                       padding: EdgeInsets.symmetric(vertical: context.sp(16)),
                     ),
@@ -150,9 +207,9 @@ class HomeScreen extends StatelessWidget {
                     icon: const Icon(Icons.pause),
                     label: const Text('Stop machine'),
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: _primaryDark,
+                      foregroundColor: HomeScreen.primaryDark,
                       padding: EdgeInsets.symmetric(vertical: context.sp(16)),
-                      side: const BorderSide(color: _primaryDark),
+                      side: const BorderSide(color: HomeScreen.primaryDark),
                     ),
                   ),
                 ),
@@ -164,7 +221,7 @@ class HomeScreen extends StatelessWidget {
                     icon: const Icon(Icons.warning_amber_rounded),
                     label: const Text('Emergency stop'),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: _danger,
+                      backgroundColor: HomeScreen.danger,
                       foregroundColor: Colors.white,
                       padding: EdgeInsets.symmetric(vertical: context.sp(16)),
                     ),
@@ -182,7 +239,7 @@ class HomeScreen extends StatelessWidget {
                     'Last event: Water leak alert resolved.',
                     style: TextStyle(
                       fontSize: context.sp(15),
-                      color: _textMuted,
+                      color: HomeScreen.textMuted,
                     ),
                   ),
                 ),
@@ -222,7 +279,7 @@ class _StatusCard extends StatelessWidget {
             title,
             style: TextStyle(
               fontSize: context.sp(14),
-              color: HomeScreen._textMuted,
+              color: HomeScreen.textMuted,
             ),
           ),
           SizedBox(height: context.sp(8)),
