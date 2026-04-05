@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_flutter_lab1/core/utils/responsive_utils.dart';
 import 'package:mobile_flutter_lab1/data/repositories/local_auth_repository.dart';
+import 'package:mobile_flutter_lab1/data/services/connectivity_service.dart';
 import 'package:mobile_flutter_lab1/data/services/local_storage_service.dart';
 import 'package:mobile_flutter_lab1/routes/app_routes.dart';
 import 'package:mobile_flutter_lab1/widgets/custom_button.dart';
@@ -18,6 +19,8 @@ class _LoginScreenState extends State<LoginScreen> {
   final _passwordController = TextEditingController();
 
   final _authRepository = LocalAuthRepository(LocalStorageService());
+
+  final _connectivityService = ConnectivityService();
 
   String _errorMessage = '';
   bool _isLoading = false;
@@ -44,6 +47,15 @@ class _LoginScreenState extends State<LoginScreen> {
     if (password.isEmpty) {
       setState(() {
         _errorMessage = 'Password cannot be empty.';
+      });
+      return;
+    }
+
+    final hasInternet = await _connectivityService.hasInternetConnection();
+
+    if (!hasInternet) {
+      setState(() {
+        _errorMessage = 'No internet connection. Please try again later.';
       });
       return;
     }
@@ -95,10 +107,7 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
             child: Column(
               children: [
-                Icon(
-                  Icons.precision_manufacturing,
-                  size: context.sp(80),
-                ),
+                Icon(Icons.precision_manufacturing, size: context.sp(80)),
                 SizedBox(height: context.sp(20)),
                 Text(
                   'LatheGuard IoT',

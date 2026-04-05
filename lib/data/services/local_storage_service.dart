@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 class LocalStorageService {
   static const _userKey = 'user_data';
   static const _isLoggedInKey = 'is_logged_in';
+  static const _mqttPayloadKey = 'last_mqtt_payload';
 
   Future<void> saveUser(UserModel user) async {
     final preferences = await SharedPreferences.getInstance();
@@ -15,20 +16,20 @@ class LocalStorageService {
   }
 
   Future<UserModel?> getUser() async {
-  final preferences = await SharedPreferences.getInstance();
-  final userJson = preferences.getString(_userKey);
+    final preferences = await SharedPreferences.getInstance();
+    final userJson = preferences.getString(_userKey);
 
-  if (userJson == null) {
-    return null;
+    if (userJson == null) {
+      return null;
+    }
+
+    final decodedJson = jsonDecode(userJson) as Map<String, dynamic>;
+    final userMap = decodedJson.map(
+      (key, value) => MapEntry(key, value.toString()),
+    );
+
+    return UserModel.fromMap(userMap);
   }
-
-  final decodedJson = jsonDecode(userJson) as Map<String, dynamic>;
-  final userMap = decodedJson.map(
-    (key, value) => MapEntry(key, value.toString()),
-  );
-
-  return UserModel.fromMap(userMap);
-}
 
   Future<void> setLoggedIn(bool value) async {
     final preferences = await SharedPreferences.getInstance();
@@ -53,5 +54,23 @@ class LocalStorageService {
     final preferences = await SharedPreferences.getInstance();
 
     await preferences.setBool(_isLoggedInKey, false);
+  }
+
+  Future<void> saveLastMqttPayload(String payload) async {
+    final preferences = await SharedPreferences.getInstance();
+
+    await preferences.setString(_mqttPayloadKey, payload);
+  }
+
+  Future<String?> getLastMqttPayload() async {
+    final preferences = await SharedPreferences.getInstance();
+
+    return preferences.getString(_mqttPayloadKey);
+  }
+
+  Future<void> clearLastMqttPayload() async {
+    final preferences = await SharedPreferences.getInstance();
+
+    await preferences.remove(_mqttPayloadKey);
   }
 }
