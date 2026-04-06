@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_flutter_lab1/core/utils/responsive_utils.dart';
 import 'package:mobile_flutter_lab1/data/models/user_model.dart';
-import 'package:mobile_flutter_lab1/data/repositories/local_auth_repository.dart';
+import 'package:mobile_flutter_lab1/data/repositories/remote_auth_repository.dart';
+import 'package:mobile_flutter_lab1/data/repositories/workshop_repository_impl.dart';
+import 'package:mobile_flutter_lab1/data/services/auth_api_service.dart';
+import 'package:mobile_flutter_lab1/data/services/connectivity_service.dart';
 import 'package:mobile_flutter_lab1/data/services/local_storage_service.dart';
+import 'package:mobile_flutter_lab1/data/services/workshop_api_service.dart';
 import 'package:mobile_flutter_lab1/routes/app_routes.dart';
 import 'package:mobile_flutter_lab1/widgets/custom_button.dart';
 import 'package:mobile_flutter_lab1/widgets/custom_text_field.dart';
@@ -23,8 +27,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final _fullNameController = TextEditingController();
   final _emailController = TextEditingController();
   final _roleController = TextEditingController();
+  final _localStorageService = LocalStorageService();
+  final _connectivityService = ConnectivityService();
 
-  final _authRepository = LocalAuthRepository(LocalStorageService());
+  late final _authRepository = RemoteAuthRepository(
+    AuthApiService(),
+    _localStorageService,
+  );
+  late final _workshopRepository = WorkshopRepositoryImpl(
+    WorkshopApiService(),
+    _localStorageService,
+  );
 
   String _errorMessage = '';
   bool _isLoading = true;
@@ -45,16 +58,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _loadUser() async {
-    final user = await _authRepository.getCurrentUser();
+    var user = await _authRepository.getCurrentUser();
 
     if (!mounted) {
       return;
     }
 
     if (user != null) {
-      _fullNameController.text = user.fullName;
-      _emailController.text = user.email;
-      _roleController.text = user.role;
+      final syncedUser = await _workshopRepository.syncUserProfile(user);
+      final profileUser = syncedUser ?? user;
+
+      _fullNameController.text = profileUser.fullName;
+      _emailController.text = profileUser.email;
+      _roleController.text = profileUser.role;
+
+      user = profileUser;
     }
 
     setState(() {
@@ -119,7 +137,29 @@ class _ProfileScreenState extends State<ProfileScreen> {
       role: role,
     );
 
-    await _authRepository.updateUser(updatedUser);
+    final hasInternet = await _connectivityService.hasInternetConnection();
+
+    if (!hasInternet) {
+      setState(() {
+        _isLoading = false;
+        _errorMessage = 'Internet connection is required to update profile.';
+      });
+      return;
+    }
+
+    try {
+      await _authRepository.updateUser(updatedUser);
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _isLoading = false;
+        _errorMessage = 'Profile update failed. Please try again.';
+      });
+      return;
+    }
 
     if (!mounted) {
       return;
@@ -138,7 +178,35 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _deleteAccount() async {
-    await _authRepository.deleteUser();
+    final hasInternet = await _connectivityService.hasInternetConnection();
+
+    if (!mounted) {
+      return;
+    }
+
+    if (!hasInternet) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Internet connection is required to delete account.'),
+        ),
+      );
+      return;
+    }
+
+    try {
+      await _authRepository.deleteUser();
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Account deletion failed. Please try again.'),
+        ),
+      );
+      return;
+    }
 
     if (!mounted) {
       return;

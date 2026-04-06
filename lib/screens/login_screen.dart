@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_flutter_lab1/core/utils/responsive_utils.dart';
-import 'package:mobile_flutter_lab1/data/repositories/local_auth_repository.dart';
+import 'package:mobile_flutter_lab1/data/models/user_model.dart';
+import 'package:mobile_flutter_lab1/data/repositories/remote_auth_repository.dart';
+import 'package:mobile_flutter_lab1/data/services/auth_api_service.dart';
 import 'package:mobile_flutter_lab1/data/services/connectivity_service.dart';
 import 'package:mobile_flutter_lab1/data/services/local_storage_service.dart';
 import 'package:mobile_flutter_lab1/routes/app_routes.dart';
@@ -18,7 +20,10 @@ class _LoginScreenState extends State<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
 
-  final _authRepository = LocalAuthRepository(LocalStorageService());
+  final _authRepository = RemoteAuthRepository(
+    AuthApiService(),
+    LocalStorageService(),
+  );
 
   final _connectivityService = ConnectivityService();
 
@@ -65,10 +70,24 @@ class _LoginScreenState extends State<LoginScreen> {
       _errorMessage = '';
     });
 
-    final user = await _authRepository.loginUser(
-      email: email,
-      password: password,
-    );
+    UserModel? user;
+
+    try {
+      user = await _authRepository.loginUser(
+        email: email,
+        password: password,
+      );
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _isLoading = false;
+        _errorMessage = 'Login failed. Please try again.';
+      });
+      return;
+    }
 
     if (!mounted) {
       return;

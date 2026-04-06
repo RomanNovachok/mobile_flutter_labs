@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:mobile_flutter_lab1/data/repositories/local_auth_repository.dart';
+import 'package:mobile_flutter_lab1/data/repositories/remote_auth_repository.dart';
+import 'package:mobile_flutter_lab1/data/services/auth_api_service.dart';
 import 'package:mobile_flutter_lab1/data/services/local_storage_service.dart';
 import 'package:mobile_flutter_lab1/routes/app_routes.dart';
 
@@ -11,7 +12,10 @@ class StartupScreen extends StatefulWidget {
 }
 
 class _StartupScreenState extends State<StartupScreen> {
-  final _authRepository = LocalAuthRepository(LocalStorageService());
+  final _authRepository = RemoteAuthRepository(
+    AuthApiService(),
+    LocalStorageService(),
+  );
 
   @override
   void initState() {

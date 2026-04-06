@@ -7,10 +7,13 @@ import 'package:mobile_flutter_lab1/core/utils/responsive_utils.dart';
 import 'package:mobile_flutter_lab1/data/models/user_model.dart';
 import 'package:mobile_flutter_lab1/data/repositories/local_auth_repository.dart';
 import 'package:mobile_flutter_lab1/data/repositories/mqtt_repository_impl.dart';
+import 'package:mobile_flutter_lab1/data/repositories/workshop_repository_impl.dart';
 import 'package:mobile_flutter_lab1/data/services/connectivity_service.dart';
 import 'package:mobile_flutter_lab1/data/services/local_storage_service.dart';
 import 'package:mobile_flutter_lab1/data/services/mqtt_service.dart';
+import 'package:mobile_flutter_lab1/data/services/workshop_api_service.dart';
 import 'package:mobile_flutter_lab1/routes/app_routes.dart';
+import 'package:mobile_flutter_lab1/widgets/machine_events_section.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -29,6 +32,10 @@ class _HomeScreenState extends State<HomeScreen> {
   final _localStorageService = LocalStorageService();
   final _connectivityService = ConnectivityService();
   final _mqttRepository = MqttRepositoryImpl(MqttService());
+  late final _workshopRepository = WorkshopRepositoryImpl(
+    WorkshopApiService(),
+    _localStorageService,
+  );
 
   late final LocalAuthRepository _authRepository =
       LocalAuthRepository(_localStorageService);
@@ -85,6 +92,10 @@ class _HomeScreenState extends State<HomeScreen> {
       _currentUser = user;
       _isLoading = false;
     });
+
+    if (user != null) {
+      await _syncUserProfile(user);
+    }
   }
 
   Future<void> _checkInternet() async {
@@ -194,6 +205,18 @@ class _HomeScreenState extends State<HomeScreen> {
       if (wasOffline) {
         await _reconnectMqtt();
       }
+    });
+  }
+
+  Future<void> _syncUserProfile(UserModel user) async {
+    final syncedUser = await _workshopRepository.syncUserProfile(user);
+
+    if (!mounted || syncedUser == null) {
+      return;
+    }
+
+    setState(() {
+      _currentUser = syncedUser;
     });
   }
 
@@ -577,6 +600,11 @@ class _HomeScreenState extends State<HomeScreen> {
                       color: HomeScreen.textMuted,
                     ),
                   ),
+                ),
+                SizedBox(height: context.sp(24)),
+                MachineEventsSection(
+                  hasInternet: _hasInternet,
+                  repository: _workshopRepository,
                 ),
               ],
             ),

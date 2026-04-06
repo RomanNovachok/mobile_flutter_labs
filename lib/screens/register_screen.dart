@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_flutter_lab1/core/utils/responsive_utils.dart';
 import 'package:mobile_flutter_lab1/data/models/user_model.dart';
-import 'package:mobile_flutter_lab1/data/repositories/local_auth_repository.dart';
+import 'package:mobile_flutter_lab1/data/repositories/remote_auth_repository.dart';
+import 'package:mobile_flutter_lab1/data/services/auth_api_service.dart';
+import 'package:mobile_flutter_lab1/data/services/connectivity_service.dart';
 import 'package:mobile_flutter_lab1/data/services/local_storage_service.dart';
 import 'package:mobile_flutter_lab1/routes/app_routes.dart';
 import 'package:mobile_flutter_lab1/widgets/custom_button.dart';
@@ -20,7 +22,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
 
-  final _authRepository = LocalAuthRepository(LocalStorageService());
+  final _authRepository = RemoteAuthRepository(
+    AuthApiService(),
+    LocalStorageService(),
+  );
+  final _connectivityService = ConnectivityService();
 
   String _errorMessage = '';
   bool _isLoading = false;
@@ -87,6 +93,15 @@ bool _isEmailValid(String value) {
       return;
     }
 
+    final hasInternet = await _connectivityService.hasInternetConnection();
+
+    if (!hasInternet) {
+      setState(() {
+        _errorMessage = 'Internet connection is required to register.';
+      });
+      return;
+    }
+
     setState(() {
       _isLoading = true;
       _errorMessage = '';
@@ -99,7 +114,19 @@ bool _isEmailValid(String value) {
       role: 'Operator',
     );
 
-    await _authRepository.registerUser(user);
+    try {
+      await _authRepository.registerUser(user);
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _isLoading = false;
+        _errorMessage = error.toString().replaceFirst('Exception: ', '');
+      });
+      return;
+    }
 
     if (!mounted) {
       return;
