@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_flutter_lab1/core/utils/responsive_utils.dart';
 import 'package:mobile_flutter_lab1/data/models/user_model.dart';
-import 'package:mobile_flutter_lab1/data/repositories/local_auth_repository.dart';
+import 'package:mobile_flutter_lab1/data/repositories/remote_auth_repository.dart';
+import 'package:mobile_flutter_lab1/data/services/auth_api_service.dart';
+import 'package:mobile_flutter_lab1/data/services/connectivity_service.dart';
 import 'package:mobile_flutter_lab1/data/services/local_storage_service.dart';
 import 'package:mobile_flutter_lab1/routes/app_routes.dart';
 import 'package:mobile_flutter_lab1/widgets/custom_button.dart';
@@ -19,8 +21,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
-
-  final _authRepository = LocalAuthRepository(LocalStorageService());
+  final _connectivityService = ConnectivityService();
+  final _authRepository = RemoteAuthRepository(
+    AuthApiService(),
+    LocalStorageService(),
+  );
 
   String _errorMessage = '';
   bool _isLoading = false;
@@ -35,18 +40,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   bool _isNameValid(String value) {
-  final nameRegex = RegExp(r"^[a-zA-Zа-яА-ЯіІїЇєЄґҐ'\-\s]+$");
+    final nameRegex = RegExp(
+      r"^[a-zA-ZА-ЩЬЮЯЄІЇҐа-щьюяєіїґ'\-\s]+$",
+    );
 
-  return value.isNotEmpty && nameRegex.hasMatch(value);
-}
+    return value.isNotEmpty && nameRegex.hasMatch(value);
+  }
 
-bool _isEmailValid(String value) {
-  final emailRegex = RegExp(
-    r'^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$',
-  );
+  bool _isEmailValid(String value) {
+    final emailRegex = RegExp(
+      r'^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$',
+    );
 
-  return emailRegex.hasMatch(value);
-}
+    return emailRegex.hasMatch(value);
+  }
 
   bool _isPasswordValid(String value) {
     return value.length >= 6;
@@ -61,7 +68,8 @@ bool _isEmailValid(String value) {
     if (!_isNameValid(fullName)) {
       setState(() {
         _errorMessage =
-    'Full name must contain only letters, spaces, apostrophes or hyphens.';
+            'Full name must contain only letters, spaces, apostrophes '
+            'or hyphens.';
       });
       return;
     }
@@ -87,6 +95,15 @@ bool _isEmailValid(String value) {
       return;
     }
 
+    final hasInternet = await _connectivityService.hasInternetConnection();
+
+    if (!hasInternet) {
+      setState(() {
+        _errorMessage = 'Internet connection is required to register.';
+      });
+      return;
+    }
+
     setState(() {
       _isLoading = true;
       _errorMessage = '';
@@ -99,7 +116,19 @@ bool _isEmailValid(String value) {
       role: 'Operator',
     );
 
-    await _authRepository.registerUser(user);
+    try {
+      await _authRepository.registerUser(user);
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _isLoading = false;
+        _errorMessage = error.toString().replaceFirst('Exception: ', '');
+      });
+      return;
+    }
 
     if (!mounted) {
       return;
@@ -130,10 +159,7 @@ bool _isEmailValid(String value) {
             ),
             child: Column(
               children: [
-                Icon(
-                  Icons.person_add_alt_1,
-                  size: context.sp(80),
-                ),
+                Icon(Icons.person_add_alt_1, size: context.sp(80)),
                 SizedBox(height: context.sp(20)),
                 Text(
                   'Create account',
