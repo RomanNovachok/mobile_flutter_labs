@@ -21,12 +21,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
-
+  final _connectivityService = ConnectivityService();
   final _authRepository = RemoteAuthRepository(
     AuthApiService(),
     LocalStorageService(),
   );
-  final _connectivityService = ConnectivityService();
 
   String _errorMessage = '';
   bool _isLoading = false;
@@ -41,18 +40,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   bool _isNameValid(String value) {
-  final nameRegex = RegExp(r"^[a-zA-Zа-яА-ЯіІїЇєЄґҐ'\-\s]+$");
+    final nameRegex = RegExp(
+      r"^[a-zA-ZА-ЩЬЮЯЄІЇҐа-щьюяєіїґ'\-\s]+$",
+    );
 
-  return value.isNotEmpty && nameRegex.hasMatch(value);
-}
+    return value.isNotEmpty && nameRegex.hasMatch(value);
+  }
 
-bool _isEmailValid(String value) {
-  final emailRegex = RegExp(
-    r'^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$',
-  );
+  bool _isEmailValid(String value) {
+    final emailRegex = RegExp(
+      r'^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$',
+    );
 
-  return emailRegex.hasMatch(value);
-}
+    return emailRegex.hasMatch(value);
+  }
 
   bool _isPasswordValid(String value) {
     return value.length >= 6;
@@ -67,7 +68,8 @@ bool _isEmailValid(String value) {
     if (!_isNameValid(fullName)) {
       setState(() {
         _errorMessage =
-    'Full name must contain only letters, spaces, apostrophes or hyphens.';
+            'Full name must contain only letters, spaces, apostrophes '
+            'or hyphens.';
       });
       return;
     }
@@ -157,10 +159,7 @@ bool _isEmailValid(String value) {
             ),
             child: Column(
               children: [
-                Icon(
-                  Icons.person_add_alt_1,
-                  size: context.sp(80),
-                ),
+                Icon(Icons.person_add_alt_1, size: context.sp(80)),
                 SizedBox(height: context.sp(20)),
                 Text(
                   'Create account',
