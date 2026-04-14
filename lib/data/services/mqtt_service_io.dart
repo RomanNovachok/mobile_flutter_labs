@@ -6,7 +6,6 @@ import 'package:mqtt_client/mqtt_server_client.dart';
 
 class MqttService implements MqttServiceBase {
   MqttService() : this._(_buildClientId());
-
   MqttService._(this._clientId)
       : _client = MqttServerClient.withPort(
           'broker.hivemq.com',
@@ -16,10 +15,8 @@ class MqttService implements MqttServiceBase {
     _configureClient();
   }
 
-  static String _buildClientId() {
-    return 'flutter_io_${DateTime.now().millisecondsSinceEpoch}';
-  }
-
+  static String _buildClientId() =>
+      'flutter_io_${DateTime.now().millisecondsSinceEpoch}';
   final String _clientId;
   final MqttServerClient _client;
   final StreamController<String> _messagesController =
@@ -31,13 +28,10 @@ class MqttService implements MqttServiceBase {
   StreamSubscription<List<MqttReceivedMessage<MqttMessage>>>?
       _updatesSubscription;
   bool _isDisposed = false;
-
   @override
   Stream<String> get messagesStream => _messagesController.stream;
-
   @override
   Stream<bool> get connectionStream => _connectionController.stream;
-
   @override
   bool get isConnected =>
       _client.connectionStatus?.state == MqttConnectionState.connected;
@@ -55,17 +49,9 @@ class MqttService implements MqttServiceBase {
     _client.onAutoReconnected = _handleAutoReconnected;
   }
 
-  void _handleConnected() {
-    _emitConnectionState(true);
-  }
-
-  void _handleDisconnected() {
-    _emitConnectionState(false);
-  }
-
-  void _handleAutoReconnect() {
-    _emitConnectionState(false);
-  }
+  void _handleConnected() => _emitConnectionState(true);
+  void _handleDisconnected() => _emitConnectionState(false);
+  void _handleAutoReconnect() => _emitConnectionState(false);
 
   void _handleAutoReconnected() {
     _emitConnectionState(true);
@@ -76,7 +62,6 @@ class MqttService implements MqttServiceBase {
     if (_isDisposed || _connectionController.isClosed) {
       return;
     }
-
     _connectionController.add(isConnected);
   }
 
@@ -88,7 +73,6 @@ class MqttService implements MqttServiceBase {
         final payload = MqttPublishPayload.bytesToStringAsString(
           message.payload.message,
         );
-
         _messagesController.add(payload);
       }
     });
@@ -98,7 +82,6 @@ class MqttService implements MqttServiceBase {
     for (final topic in _subscribedTopics) {
       _client.subscribe(topic, MqttQos.atMostOnce);
     }
-
     _bindUpdatesListener();
   }
 
@@ -107,14 +90,11 @@ class MqttService implements MqttServiceBase {
     if (isConnected) {
       return true;
     }
-
     final connectionMessage = MqttConnectMessage()
         .withClientIdentifier(_clientId)
         .startClean()
         .withWillQos(MqttQos.atMostOnce);
-
     _client.connectionMessage = connectionMessage;
-
     try {
       await _client.connect();
     } catch (_) {
@@ -122,19 +102,16 @@ class MqttService implements MqttServiceBase {
       _emitConnectionState(false);
       return false;
     }
-
     if (isConnected) {
       _bindUpdatesListener();
       _emitConnectionState(true);
     }
-
     return isConnected;
   }
 
   @override
   Future<void> subscribe(String topic) async {
     _subscribedTopics.add(topic);
-
     if (isConnected) {
       _client.subscribe(topic, MqttQos.atMostOnce);
       _bindUpdatesListener();
