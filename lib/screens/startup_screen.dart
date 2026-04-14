@@ -1,49 +1,36 @@
 import 'package:flutter/material.dart';
-import 'package:mobile_flutter_lab1/data/repositories/remote_auth_repository.dart';
-import 'package:mobile_flutter_lab1/data/services/auth_api_service.dart';
-import 'package:mobile_flutter_lab1/data/services/local_storage_service.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:mobile_flutter_lab1/domain/repositories/auth_repository.dart';
 import 'package:mobile_flutter_lab1/routes/app_routes.dart';
 
-class StartupScreen extends StatefulWidget {
+class StartupScreen extends StatelessWidget {
   const StartupScreen({super.key});
 
-  @override
-  State<StartupScreen> createState() => _StartupScreenState();
-}
-
-class _StartupScreenState extends State<StartupScreen> {
-  final _authRepository = RemoteAuthRepository(
-    AuthApiService(),
-    LocalStorageService(),
-  );
-
-  @override
-  void initState() {
-    super.initState();
-    _checkSession();
-  }
-
-  Future<void> _checkSession() async {
-    final user = await _authRepository.getCurrentUser();
-
-    if (!mounted) {
-      return;
-    }
-
-    if (user != null) {
-      Navigator.pushReplacementNamed(context, AppRoutes.home);
-      return;
-    }
-
-    Navigator.pushReplacementNamed(context, AppRoutes.login);
+  Future<String> _resolveRoute(BuildContext context) async {
+    final user = await context.read<AuthRepository>().getCurrentUser();
+    return user != null ? AppRoutes.home : AppRoutes.login;
   }
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      body: Center(
-        child: CircularProgressIndicator(),
-      ),
+    return FutureBuilder<String>(
+      future: _resolveRoute(context),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState != ConnectionState.done) {
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
+
+        final targetRoute = snapshot.data ?? AppRoutes.login;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          Navigator.pushReplacementNamed(context, targetRoute);
+        });
+
+        return const Scaffold(
+          body: Center(child: CircularProgressIndicator()),
+        );
+      },
     );
   }
 }
