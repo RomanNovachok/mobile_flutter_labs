@@ -129,6 +129,15 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "7.0.1"
+  flash_toggle_plugin:
+    dependency: "direct main"
+    description:
+      path: "."
+      ref: "v0.0.1"
+      resolved-ref: "3bb7a9fe3846dfeb973a2be1c85e6638debed6b7"
+      url: "https://github.com/RomanNovachok/flash_toggle_plugin.git"
+    source: git
+    version: "0.0.1"
   flutter:
     dependency: "direct main"
     description: flutter

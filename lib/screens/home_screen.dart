@@ -1,4 +1,6 @@
+import 'package:flash_toggle_plugin/flash_toggle_plugin.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:mobile_flutter_lab1/core/utils/responsive_utils.dart';
 import 'package:mobile_flutter_lab1/cubit/home_cubit.dart';
@@ -10,6 +12,58 @@ import 'package:mobile_flutter_lab1/widgets/machine_events_section.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
+
+  Future<void> _toggleSecretFlashlight(BuildContext context) async {
+    try {
+      final isEnabled = await FlashTogglePlugin.toggleLight();
+
+      if (!context.mounted) {
+        return;
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            isEnabled
+                ? 'Secret flashlight mode enabled.'
+                : 'Secret flashlight mode disabled.',
+          ),
+        ),
+      );
+    } on UnsupportedError catch (error) {
+      if (!context.mounted) {
+        return;
+      }
+
+      await showDialog<void>(
+        context: context,
+        builder: (dialogContext) {
+          return AlertDialog(
+            title: const Text('Feature unavailable'),
+            content: Text(error.message ?? 'This platform is not supported.'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(),
+                child: const Text('OK'),
+              ),
+            ],
+          );
+        },
+      );
+    } on PlatformException catch (error) {
+      if (!context.mounted) {
+        return;
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            error.message ?? 'Flashlight action failed on this device.',
+          ),
+        ),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -50,9 +104,12 @@ class HomeScreen extends StatelessWidget {
 
           return Scaffold(
             appBar: AppBar(
-              title: Text(
-                'LatheGuard IoT',
-                style: TextStyle(fontSize: context.sp(20)),
+              title: GestureDetector(
+                onLongPress: () => _toggleSecretFlashlight(context),
+                child: Text(
+                  'LatheGuard IoT',
+                  style: TextStyle(fontSize: context.sp(20)),
+                ),
               ),
               actions: [
                 Padding(

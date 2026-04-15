@@ -43,3 +43,6 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Local clone of external plugin repo (used via git dependency in pubspec)
+/flash_toggle_plugin/
